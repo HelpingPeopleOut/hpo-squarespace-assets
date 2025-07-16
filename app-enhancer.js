@@ -3,7 +3,7 @@
  * HPO.CENTER APP ENHANCER V2.0
  * ===================================================================
  * This file consolidates all custom JavaScript functionality for the site.
- * New in this version: Agent Hub tab switching.
+ * New in this version: Agent Hub tab switching and referral modal logic.
  * ===================================================================
  */
 
@@ -37,29 +37,33 @@ document.addEventListener('DOMContentLoaded', () => {
     sessionStorage.setItem('hpo_modal_shown', 'true');
     exitIntentShown = true;
   };
-
+  
   if (exitModal) {
     setTimeout(showExitModal, 45000);
     document.addEventListener('mouseleave', e => { if (e.clientY < 10) showExitModal(); });
     closeModalBtn.addEventListener('click', () => exitModal.classList.remove('show-modal'));
     exitModal.addEventListener('click', e => { if (e.target === exitModal) exitModal.classList.remove('show-modal'); });
   }
-  
-  // --- 3. AGENT HUB & PROCESS TAB SWITCHING ---
+
+  // --- 3. TAB SWITCHING LOGIC ---
   window.switchContent = function(event, tabId) {
       event.preventDefault();
       document.querySelectorAll('.hpo-nav-link').forEach(link => link.classList.remove('active'));
       document.querySelectorAll('.hpo-content-panel').forEach(panel => panel.classList.remove('active'));
-      document.querySelector(`.hpo-nav-link[href="#${tabId}"]`).classList.add('active');
-      document.getElementById(tabId).classList.add('active');
+      const activeLink = document.querySelector(`.hpo-nav-link[href="#${tabId}"]`);
+      if (activeLink) activeLink.classList.add('active');
+      const activePanel = document.getElementById(tabId);
+      if (activePanel) activePanel.classList.add('active');
   };
     
   window.switchAgentTab = function(event, tabId) {
       event.preventDefault();
       document.querySelectorAll('.hpo-agent-nav-link').forEach(link => link.classList.remove('active'));
       document.querySelectorAll('.hpo-agent-content-panel').forEach(panel => panel.classList.remove('active'));
-      document.querySelector(`.hpo-agent-nav-link[href="#${tabId}"]`).classList.add('active');
-      document.getElementById(tabId).classList.add('active');
+      const activeLink = document.querySelector(`.hpo-agent-nav-link[href="#${tabId}"]`);
+      if(activeLink) activeLink.classList.add('active');
+      const activePanel = document.getElementById(tabId);
+      if (activePanel) activePanel.classList.add('active');
   };
 
   // --- 4. REFERRAL MODAL LOGIC ---
@@ -71,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
       openReferralButtons.forEach(btn => {
           btn.addEventListener('click', () => referralModal.classList.add('show-modal'));
       });
-      closeReferralModalBtn.addEventListener('click', () => referralModal.classList.remove('show-modal'));
+      if(closeReferralModalBtn) closeReferralModalBtn.addEventListener('click', () => referralModal.classList.remove('show-modal'));
       referralModal.addEventListener('click', e => { if (e.target === referralModal) referralModal.classList.remove('show-modal'); });
   }
 
