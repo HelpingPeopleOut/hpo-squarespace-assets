@@ -1,14 +1,9 @@
 /**
  * ===================================================================
- * HPO.CENTER APP ENHANCER V1.0
+ * HPO.CENTER APP ENHANCER V2.0
  * ===================================================================
  * This file consolidates all custom JavaScript functionality for the site.
- * It includes:
- * 1. PWA Service Worker Registration
- * 2. The Interaction Manager (Floating Buttons & Intelligent Modal)
- * 3. UTM Parameter & Lead Source Tracking
- * 4. Dynamic Page Prefetching for faster navigation
- * * Implemented: July 2025
+ * New in this version: Agent Hub tab switching.
  * ===================================================================
  */
 
@@ -24,83 +19,63 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- 2. INTERACTION MANAGER (MODAL & FLOATING BUTTONS) ---
-  const HPO_Interactions = {
-    config: { modalTimeout: 30000, scrollDepthTrigger: 50, scrollTopShowPixels: 300 },
-    modalHasBeenTriggered: false,
-    elements: {},
-    init() {
-      this.cacheElements();
-      if (this.elements.modalOverlay) this.setupEventListeners();
-    },
-    cacheElements() {
-      this.elements.scrollTopBtn = document.getElementById('hpo-scroll-to-top');
-      this.elements.modalOverlay = document.getElementById('hpo-smart-modal');
-      this.elements.closeModalBtn = this.elements.modalOverlay ? this.elements.modalOverlay.querySelector('.hpo-modal-close') : null;
-      this.elements.dontShowCheckbox = document.getElementById('hpo-dont-show-again-checkbox'); // Assuming you might add this back later
-    },
-    setupEventListeners() {
-      setTimeout(() => this.triggerModal('timer'), this.config.modalTimeout);
-      window.addEventListener('scroll', () => this.handleScroll(), { passive: true });
-      document.addEventListener('mouseleave', (e) => this.handleExitIntent(e));
-      if (this.elements.closeModalBtn) {
-        this.elements.closeModalBtn.addEventListener('click', () => this.hideModal());
-      }
-      this.elements.modalOverlay.addEventListener('click', (e) => { if (e.target === this.elements.modalOverlay) this.hideModal(); });
-      if(this.elements.scrollTopBtn) {
-        this.elements.scrollTopBtn.addEventListener('click', () => this.scrollToTop());
-      }
-    },
-    handleScroll() {
-      if(this.elements.scrollTopBtn) {
-        this.elements.scrollTopBtn.classList.toggle('visible', window.scrollY > this.config.scrollTopShowPixels);
-      }
-      const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
-      if (scrollPercent >= this.config.scrollDepthTrigger) {
-        this.triggerModal('scroll_depth');
-      }
-    },
-    handleExitIntent(event) { if (event.clientY < 10) this.triggerModal('exit_intent'); },
-    triggerModal(triggerType) {
-      const isPermanentlyDismissed = localStorage.getItem('hpoModalDismissed_v3') === 'true';
-      if (this.modalHasBeenTriggered || isPermanentlyDismissed) return;
-      
-      this.modalHasBeenTriggered = true;
-      this.elements.modalOverlay.classList.add('show-modal');
-      
-      if (typeof gtag === 'function') {
-        gtag('event', 'modal_triggered', { 'event_category': 'Engagement', 'event_label': `Trigger: ${triggerType}` });
-      }
-    },
-    hideModal() {
-      if (this.elements.dontShowCheckbox && this.elements.dontShowCheckbox.checked) {
-        localStorage.setItem('hpoModalDismissed_v3', 'true');
-      }
-      this.elements.modalOverlay.classList.remove('show-modal');
-    },
-    scrollToTop() {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      if (typeof gtag === 'function') {
-        gtag('event', 'click', {'event_category': 'Navigation', 'event_label': 'Scroll to Top'});
-      }
-    }
-  };
-  HPO_Interactions.init(); // Run the Interaction Manager
+  const scrollBtn = document.getElementById('scroll-to-top');
+  const exitModal = document.getElementById('hpo-exit-modal');
+  const closeModalBtn = exitModal ? exitModal.querySelector('.hpo-modal-close') : null;
+  let exitIntentShown = sessionStorage.getItem('hpo_modal_shown') === 'true';
 
+  if (scrollBtn) {
+    const toggleVisibility = () => scrollBtn.classList.toggle('show', window.scrollY > 300);
+    window.addEventListener('scroll', toggleVisibility, { passive: true });
+    toggleVisibility();
+    scrollBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+  }
+
+  const showExitModal = () => {
+    if (exitIntentShown || !exitModal) return;
+    exitModal.classList.add('show-modal');
+    sessionStorage.setItem('hpo_modal_shown', 'true');
+    exitIntentShown = true;
+  };
+
+  if (exitModal) {
+    setTimeout(showExitModal, 45000);
+    document.addEventListener('mouseleave', e => { if (e.clientY < 10) showExitModal(); });
+    closeModalBtn.addEventListener('click', () => exitModal.classList.remove('show-modal'));
+    exitModal.addEventListener('click', e => { if (e.target === exitModal) exitModal.classList.remove('show-modal'); });
+  }
   
-  // --- 3. DYNAMIC PAGE PREFETCHING ---
-  const prefetchLink = (e) => {
-    const link = e.target.closest('a');
-    if (link && link.href && (link.href.startsWith(window.location.origin) || link.href.startsWith('/')) && !link.href.includes('#')) {
-      const prefetcher = document.createElement('link');
-      prefetcher.rel = 'prefetch';
-      prefetcher.href = link.href;
-      document.head.appendChild(prefetcher);
-    }
+  // --- 3. AGENT HUB & PROCESS TAB SWITCHING ---
+  window.switchContent = function(event, tabId) {
+      event.preventDefault();
+      document.querySelectorAll('.hpo-nav-link').forEach(link => link.classList.remove('active'));
+      document.querySelectorAll('.hpo-content-panel').forEach(panel => panel.classList.remove('active'));
+      document.querySelector(`.hpo-nav-link[href="#${tabId}"]`).classList.add('active');
+      document.getElementById(tabId).classList.add('active');
   };
-  document.body.addEventListener('mouseenter', prefetchLink, { capture: true, passive: true });
+    
+  window.switchAgentTab = function(event, tabId) {
+      event.preventDefault();
+      document.querySelectorAll('.hpo-agent-nav-link').forEach(link => link.classList.remove('active'));
+      document.querySelectorAll('.hpo-agent-content-panel').forEach(panel => panel.classList.remove('active'));
+      document.querySelector(`.hpo-agent-nav-link[href="#${tabId}"]`).classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+  };
 
+  // --- 4. REFERRAL MODAL LOGIC ---
+  const referralModal = document.getElementById('hpo-referral-modal');
+  const closeReferralModalBtn = referralModal ? referralModal.querySelector('.hpo-modal-close') : null;
+  const openReferralButtons = document.querySelectorAll('#open-referral-modal-agent-hub, #open-referral-modal-how-it-works, #open-referral-modal-submit-tab');
 
-  // --- 4. UTM PARAMETER & LEAD SOURCE TRACKING ---
+  if (referralModal) {
+      openReferralButtons.forEach(btn => {
+          btn.addEventListener('click', () => referralModal.classList.add('show-modal'));
+      });
+      closeReferralModalBtn.addEventListener('click', () => referralModal.classList.remove('show-modal'));
+      referralModal.addEventListener('click', e => { if (e.target === referralModal) referralModal.classList.remove('show-modal'); });
+  }
+
+  // --- 5. UTM & LEAD TRACKING ---
   try {
     const params = new URLSearchParams(window.location.search);
     const utmKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid'];
@@ -112,9 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hasUtm = true;
       }
     });
-    if (hasUtm) {
-      localStorage.setItem('hpo_lead_source', JSON.stringify(leadData));
-    }
+    if (hasUtm) localStorage.setItem('hpo_lead_source', JSON.stringify(leadData));
   } catch(e) { console.warn("HPO UTM tracking error:", e); }
 
 });
