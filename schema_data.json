@@ -1,0 +1,10 @@
+{
+  "_default_": {
+    "type": "ProfessionalService",
+    "name": "HPO.Center"
+  },
+  "/how-it-works": {
+     "type": "WebPage",
+     "name": "Our Process | HPO.Center"
+  }
+}
